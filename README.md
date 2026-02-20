@@ -1,13 +1,5 @@
-# aeneas_playground
+# README
 
-## GitHub configuration
+This project is a case study in verifying a small mutable singly-linked list written in safe Rust using Aeneas’ Lean 4 backend. The goal is to prove that key operations—`push_back`, `append`, and iterative `reverse_iter`—are correct with respect to a pure Lean `List` abstraction (i.e., the extracted Aeneas model preserves the expected functional behavior). Alongside the proofs, the plan is to design and implement a small Lean 4 meta-tool to automate repetitive Aeneas-style “monadic plumbing,” including bounded symbolic execution steps, branch elimination for `Result`, and normalization of common existential/postcondition goal shapes, so the remaining proof effort focuses on the list invariants and high-level reasoning.
 
-To set up your new GitHub repository, follow these steps:
-
-* Under your repository name, click **Settings**.
-* In the **Actions** section of the sidebar, click "General".
-* Check the box **Allow GitHub Actions to create and approve pull requests**.
-* Click the **Pages** section of the settings sidebar.
-* In the **Source** dropdown menu, select "GitHub Actions".
-
-After following the steps above, you can remove this section from the README file.
+At present, the Rust list is implemented (vibe coded) and Aeneas produces Lean code for `Node`/`List` and the target methods (`push_front`, `push_back`, `append`, `reverse_iter`). This was to check how Aeneas works (installing it was a bit of a pain).
