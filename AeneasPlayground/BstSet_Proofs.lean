@@ -31,8 +31,6 @@ theorem insert_loop_total (k : Std.I32) :
               simp [bst_set.BstSet.insert_loop, hk, hlt, houtR]
 
 /--
-Key lemma (monadic form):
-
 If `insert_loop k cur = ok out`, then membership in `out` is exactly membership
 in `cur` plus the new key `k`.
 -/
@@ -101,7 +99,6 @@ theorem insert_loop_mem (k x : Std.I32) :
 /-- After `insert`, the inserted key is a member. -/
 theorem insert_mem_self (s : bst_set.BstSet) (k : Std.I32) :
     ∃ s', bst_set.BstSet.insert s k = ok s' ∧ mem s' k := by
-  -- Use totality to get the ok-witness.
   rcases insert_loop_total (k := k) s.root with ⟨out, hout⟩
   refine ⟨{ root := out }, ?_, ?_⟩
   · simp [bst_set.BstSet.insert, hout]

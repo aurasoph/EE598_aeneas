@@ -9,8 +9,6 @@ open binary_heap
 
 /--
 `MinHeap.new` builds an empty heap, relative to a chosen `Vec → List` interpretation.
-
-Assumption: `Vec.new` corresponds to `[]` under `toListVec`.
 -/
 theorem new_correct_relative
   (toListVec : alloc.vec.Vec Std.I32 → _root_.List Std.I32)
