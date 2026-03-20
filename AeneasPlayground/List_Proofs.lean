@@ -10,9 +10,6 @@ namespace list_spec
 
 open list
 
-#check loop
-#check ControlFlow
-
 -- push_front and is_empty
 
 /--
@@ -22,8 +19,8 @@ theorem push_front_correct (xs : list.List) (x : Std.I32) :
     ∃ ys, list.List.push_front xs x = ok ys ∧
       toList ys = x :: toList xs := by
   refine ⟨{ head := some (list.Node.mk x xs.head) }, ?_, ?_⟩
-  · simp [list.List.push_front]
-  · simp [toList]
+  · grind [list.List.push_front, core.option.Option.take]
+  · grind [toList, toListAux]
 
 /--
 `is_empty` agrees with the pure abstraction: it returns `true` exactly when the
@@ -32,7 +29,7 @@ abstract list is empty.
 theorem is_empty_correct (xs : list.List) :
     ∃ b, list.List.is_empty xs = ok b ∧ (b = true ↔ toList xs = []) := by
   refine ⟨core.option.Option.is_none xs.head, ?_, ?_⟩
-  · simp [list.List.is_empty]
+  · grind [list.List.is_empty]
   · cases h : xs.head with
     | none =>
         simp [toList, h]
@@ -55,9 +52,9 @@ theorem push_back_loop_spec :
           toListAux (f suf) = toListAux cur ++ toListAux suf)
   | none => by
       refine ⟨(fun o => o), ?_, ?_⟩
-      · simp [list.List.push_back_loop]
+      · grind [list.List.push_back_loop]
       · intro suf
-        simp
+        grind [toListAux]
   | some n => by
       cases n with
       | mk x nxt =>
@@ -96,15 +93,15 @@ theorem append_loop_spec :
         toListAux out = toListAux cur ++ toList other
   | other, none => by
       refine ⟨other.head, ?_, ?_⟩
-      · simp [list.List.append_loop]
-      · simp [toList]
+      · grind [list.List.append_loop, core.option.Option.take]
+      · grind [toList, toListAux]
   | other, some n => by
       cases n with
       | mk x nxt =>
           cases hnxt : nxt with
           | none =>
               refine ⟨some (list.Node.mk x other.head), ?_, ?_⟩
-              · simp [list.List.append_loop]
+              · simp [list.List.append_loop, core.option.Option.take]
               · simp [toList, _root_.List.cons_append]
           | some nxtNode =>
               rcases append_loop_spec other (some nxtNode) with ⟨out, hout, hsem⟩
@@ -121,14 +118,13 @@ theorem append_correct (xs ys : list.List) :
   cases hx : xs.head with
   | none =>
       refine ⟨{ head := ys.head }, ?_, ?_⟩
-      · simp [list.List.append, hx]
+      · simp [list.List.append, hx, core.option.Option.take]
       · simp [toList, hx]
   | some n =>
       rcases append_loop_spec ys (some n) with ⟨out, hout, hsem⟩
       refine ⟨{ head := out }, ?_, ?_⟩
       · simp [list.List.append, hx, hout]
       · simp [toList, hx, hsem]
-
 
 -- reverse_iter (via reverse_iter_loop)
 
@@ -222,13 +218,13 @@ theorem pop_front_correct (xs : list.List) :
   cases h : xs.head with
   | none =>
       refine ⟨none, { head := none }, ?_, ?_⟩
-      · simp [list.List.pop_front, h]
-      · simp [toList, h]
+      · grind [list.List.pop_front, core.option.Option.take]
+      · grind [toList, toListAux]
   | some n =>
       cases n with
       | mk x nxt =>
           refine ⟨some x, { head := nxt }, ?_, ?_⟩
-          · simp [list.List.pop_front, h]
+          · simp [list.List.pop_front, h, core.option.Option.take]
           · simp [toList, h]
 
 -- len (relative to Option.as_ref)
@@ -255,42 +251,37 @@ theorem len_loop_correct_relative
   ∀ (n : Std.Usize) (cur : Option list.Node),
     list.List.len_loop n cur = usizeAddNatR n (toListAux cur).length := by
   intro n cur
-
   let body :
       (Std.Usize × Option list.Node) →
         Result (ControlFlow (Std.Usize × Option list.Node) Std.Usize) :=
     fun s =>
       match s.2 with
       | none => ok (done s.1)
-      | some node =>
-        do
+      | some node => do
           let n2 ← s.1 + 1#usize
           let cur2 ← list.core.option.Option.as_ref node.next
           ok (cont (n2, cur2))
-
-  cases hcur : cur with
+  cases cur with
   | none =>
-      simp [list.List.len_loop, body, usizeAddNatR, toListAux, hcur]
+      simp only [toListAux_none, List.length_nil, usizeAddNatR]
+      simp only [list.List.len_loop]
       unfold Aeneas.Std.loop
       simp
   | some node =>
       cases node with
       | mk x nxt =>
           have href : list.core.option.Option.as_ref nxt = ok nxt := H nxt
-          simp [list.List.len_loop, body, hcur]
+          simp only [list.List.len_loop]
           unfold Aeneas.Std.loop
           simp [href]
           cases hplus : (n + 1#usize) with
           | ok n2 =>
-              simp [usizeAddNatR, hplus, toListAux]
-              simpa [list.List.len_loop, body] using (len_loop_correct_relative H n2 nxt)
+              simp [usizeAddNatR, hplus]
+              simpa [list.List.len_loop, body] using (len_loop_correct_relative (H := H) n2 nxt)
           | fail e =>
               simp [usizeAddNatR, hplus]
           | div =>
               simp [usizeAddNatR, hplus]
-termination_by
-  n cur => sizeOf cur
-
 /--
 `len` correctness, relative to the behavior of `Option.as_ref`.
 
